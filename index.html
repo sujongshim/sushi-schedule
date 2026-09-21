@@ -245,9 +245,9 @@
       <div class="viewtoggle">
         <button id="btnList" class="active">리스트</button>
         <button id="btnCal">대학별 달력</button>
-        <button id="btnCalAll">전체달력</button>
       </div>
       <div class="typefilter" id="typeFilter">
+        <button id="btnCalAll">전체달력</button>
         <button data-type="interview">면접형</button>
         <button data-type="document">서류형</button>
         <button data-type="equity">기회균형</button>
@@ -331,9 +331,10 @@
     return state.typeFilter === 'all' || state.typeFilter === tc;
   }
 
-  // 리스트 뷰: 검색어 + 전형유형 필터 모두 적용
+  // 리스트 뷰: 검색어만 적용. 전형유형 필터(면접형/서류형/기회균형/논술형)는 리스트에는 적용하지 않음 —
+  // 리스트에는 항상 해당 대학의 모든 전형이 나와야 함(전형유형 순서로 정렬만 함)
   function filteredEntries(){
-    return DATA.filter(function(d){ return matches(d.univ) && matchesType(classify(d)); });
+    return DATA.filter(function(d){ return matches(d.univ); });
   }
   // 달력 뷰: state.calAll이 true("전체달력")면 검색어와 무관하게 전형유형 필터만 적용해 전체 대학을 보여줌.
   // false("대학별 달력")면 검색창에 입력된 대학의 모든 전형을 전형유형 필터와 무관하게 전부 보여줌
@@ -602,6 +603,13 @@
     refresh();
   });
 
+  // 전형유형 필터(면접형/서류형/기회균형/논술형)는 "전체달력"에서만 의미가 있음.
+  // 리스트나 대학별 달력으로 전환할 때는 항상 초기화해서, 필터를 누른 기억이 다른 뷰에
+  // 그대로 남아 화면이 걸러진 채로 보이는 문제(예: 리스트에서 특정 전형만 남는 현상)를 막음
+  function resetTypeFilter(){
+    state.typeFilter = 'all';
+    Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button[data-type]'), function(b){ b.classList.remove('active'); });
+  }
   function showCalendarView(calAll){
     state.view='cal';
     state.calAll = calAll;
@@ -610,6 +618,7 @@
     document.getElementById('btnList').classList.remove('active');
     document.getElementById('calView').hidden = false;
     document.getElementById('listView').hidden = true;
+    if(!calAll){ resetTypeFilter(); }
   }
   function showListView(){
     state.view='list';
@@ -618,11 +627,12 @@
     document.getElementById('btnCalAll').classList.remove('active');
     document.getElementById('calView').hidden = true;
     document.getElementById('listView').hidden = false;
+    resetTypeFilter();
   }
 
-  // 면접형/서류형/기회균형/논술형 버튼: 클릭 시 현재 달력 모드를 유지한 채 달력을 보여줌.
-  // (단, "대학별 달력" 모드에서는 이 필터가 달력에 영향을 주지 않음 — 검색된 대학의 모든 전형을 항상 표시)
-  Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button'), function(btn){
+  // 면접형/서류형/기회균형/논술형 버튼: 전형유형 필터는 "전체달력"에서만 의미가 있으므로
+  // 클릭하면 항상 전체달력으로 전환해서 보여줌 (리스트/대학별 달력에는 영향 없음)
+  Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button[data-type]'), function(btn){
     btn.addEventListener('click', function(){
       var t = btn.getAttribute('data-type');
       if(state.typeFilter === t){
@@ -630,11 +640,11 @@
         btn.classList.remove('active');
       } else {
         state.typeFilter = t;
-        Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button'), function(b){ b.classList.remove('active'); });
+        Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button[data-type]'), function(b){ b.classList.remove('active'); });
         btn.classList.add('active');
       }
       state.selectedDate = null;
-      showCalendarView(state.view === 'cal' ? state.calAll : true);
+      showCalendarView(true);
       refresh();
     });
   });
