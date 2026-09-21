@@ -136,6 +136,13 @@
   }
   .cal-head .navbtn:hover{background:var(--surface-2);}
   .cal-head h2{font-size:1.15rem;}
+  .cal-unifilter{display:flex; align-items:center; gap:8px; margin:0 0 12px; justify-content:flex-end;}
+  .cal-unifilter label{font-size:.78rem; color:var(--ink-soft); font-weight:600;}
+  .cal-unifilter select{
+    font-size:.86rem; padding:7px 10px; border-radius:9px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); max-width:60%;
+  }
+  .cal-unifilter select:focus{border-color:var(--accent); outline:none; box-shadow:0 0 0 3px var(--accent-soft);}
   .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
   .cal-grid .dow{text-align:center; font-size:.72rem; color:var(--ink-faint); padding-bottom:4px; font-weight:600;}
   .cal-cell{
@@ -270,6 +277,12 @@
       <h2 id="calTitle">2026년 9월</h2>
       <button class="navbtn" id="nextMonth" aria-label="다음 달">›</button>
     </div>
+    <div class="cal-unifilter">
+      <label for="calUniSelect">대학교</label>
+      <select id="calUniSelect">
+        <option value="all">전체 대학</option>
+      </select>
+    </div>
     <div class="cal-grid" id="calGrid"></div>
     <div class="day-detail" id="dayDetail"></div>
   </section>
@@ -315,7 +328,7 @@
   }
   var EVENTS = buildEvents();
 
-  var state = { query:'', view:'list', typeFilter:'all', calYear:2026, calMonth:9 /*1-indexed*/, selectedDate:null };
+  var state = { query:'', view:'list', typeFilter:'all', calUni:'all', calYear:2026, calMonth:9 /*1-indexed*/, selectedDate:null };
 
   function norm(s){ return (s||'').toLowerCase(); }
 
@@ -328,6 +341,10 @@
     return state.typeFilter === 'all' || state.typeFilter === tc;
   }
 
+  function matchesCalUni(uniName){
+    return state.calUni === 'all' || state.calUni === uniName;
+  }
+
   // 리스트 뷰: 검색어 + 전형유형 필터 모두 적용
   function filteredEntries(){
     return DATA.filter(function(d){ return matches(d.univ) && matchesType(classify(d)); });
@@ -335,9 +352,9 @@
   function filteredEvents(){
     return EVENTS.filter(function(e){ return matches(e.uni) && matchesType(e.typeClass); });
   }
-  // 달력 뷰: 검색어와 무관하게 항상 모든 대학 표시, 전형유형 필터만 적용
+  // 달력 뷰: 상단 검색창과는 무관하게, 전형유형 필터 + 달력 전용 대학교 메뉴(전체/개별)를 적용
   function calendarEvents(){
-    return EVENTS.filter(function(e){ return matchesType(e.typeClass); });
+    return EVENTS.filter(function(e){ return matchesType(e.typeClass) && matchesCalUni(e.uni); });
   }
 
   // ---------- Google Calendar link ----------
@@ -459,7 +476,6 @@
   }
 
   // ---------- Calendar view ----------
-  var MONTHS_RANGE = [ [2026,9],[2026,10],[2026,11],[2026,12],[2027,1],[2027,2] ];
 
   function eventsOnDate(dateStr, evs){
     return evs.filter(function(e){
@@ -537,6 +553,15 @@
   // ---------- Search / suggestions ----------
   var uniList = Array.from(new Set(DATA.map(function(d){return d.univ;}))).sort(function(a,b){return a.localeCompare(b,'ko');});
 
+  // 달력 전용 대학교 메뉴(전체/개별) 채우기
+  (function populateCalUniSelect(){
+    var sel = document.getElementById('calUniSelect');
+    var opts = '<option value="all">전체 대학</option>' + uniList.map(function(u){
+      return '<option value="'+esc(u)+'">'+esc(u)+'</option>';
+    }).join('');
+    sel.innerHTML = opts;
+  })();
+
   function renderSuggest(){
     var box = document.getElementById('suggest');
     var q = document.getElementById('search').value.trim();
@@ -561,7 +586,7 @@
   function refresh(){
     document.getElementById('clearBtn').style.display = state.query ? 'block' : 'none';
     if(state.view === 'cal'){
-      // 달력은 검색어와 무관하게 항상 전체 대학 대상. 전형유형 필터가 걸려 있으면 해당 유형의 첫 일정이 있는 달로 이동
+      // 달력은 상단 검색창과는 무관(대학 필터는 calUniSelect로 별도 적용). 전형유형 필터가 걸려 있으면 해당 유형의 첫 일정이 있는 달로 이동
       if(state.typeFilter !== 'all'){
         var evs = calendarEvents();
         if(evs.length){
@@ -591,6 +616,21 @@
     state.query='';
     document.getElementById('suggest').hidden = true;
     refresh();
+  });
+
+  document.getElementById('calUniSelect').addEventListener('change', function(e){
+    state.calUni = e.target.value;
+    state.selectedDate = null;
+    // 특정 대학을 선택하면 그 대학의 가장 빠른 일정이 있는 달로 이동(전체 대학 선택 시에는 이동하지 않음)
+    if(state.calUni !== 'all'){
+      var evs = calendarEvents();
+      if(evs.length){
+        var first = evs[0].date.split('-');
+        state.calYear = parseInt(first[0],10);
+        state.calMonth = parseInt(first[1],10);
+      }
+    }
+    renderCalendar();
   });
 
   function showCalendarView(){
@@ -635,14 +675,17 @@
     refresh();
   });
 
-  document.getElementById('prevMonth').addEventListener('click', function(){
-    var idx = MONTHS_RANGE.findIndex(function(p){return p[0]===state.calYear && p[1]===state.calMonth;});
-    if(idx > 0){ state.calYear = MONTHS_RANGE[idx-1][0]; state.calMonth = MONTHS_RANGE[idx-1][1]; state.selectedDate=null; renderCalendar(); }
-  });
-  document.getElementById('nextMonth').addEventListener('click', function(){
-    var idx = MONTHS_RANGE.findIndex(function(p){return p[0]===state.calYear && p[1]===state.calMonth;});
-    if(idx >= 0 && idx < MONTHS_RANGE.length-1){ state.calYear = MONTHS_RANGE[idx+1][0]; state.calMonth = MONTHS_RANGE[idx+1][1]; state.selectedDate=null; renderCalendar(); }
-  });
+  // 월 이동: 고정 배열 대신 산술 계산으로 처리 — 어떤 필터가 걸려 있어도(서류형 등)
+  // 데이터가 있는 달이 몇 월이든 상관없이 막히지 않고 자유롭게 이전/다음 달로 이동
+  function shiftMonth(delta){
+    var total = state.calYear*12 + (state.calMonth-1) + delta;
+    state.calYear = Math.floor(total/12);
+    state.calMonth = (total%12) + 1;
+    state.selectedDate = null;
+    renderCalendar();
+  }
+  document.getElementById('prevMonth').addEventListener('click', function(){ shiftMonth(-1); });
+  document.getElementById('nextMonth').addEventListener('click', function(){ shiftMonth(1); });
 
   // init: jump calendar to earliest event month (Sept 2026)
   refresh();
