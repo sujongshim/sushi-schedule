@@ -1,0 +1,649 @@
+<title>수시 면접·발표 검색기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#faf8f4;
+    --surface:#ffffff;
+    --surface-2:#f2efe8;
+    --ink:#20232d;
+    --ink-soft:#5b5f6d;
+    --ink-faint:#8b8e99;
+    --line:#e6e2d8;
+    --accent:#1f3a63;
+    --accent-soft:#e7edf6;
+    --accent-2:#8a6d3b;
+    --tag-stage1:#3a6ea5;
+    --tag-exam:#b8863b;
+    --tag-final:#3f7d5c;
+    --tag-gyogwa:#6b5b95;
+    --shadow: 0 1px 2px rgba(32,35,45,.05), 0 6px 16px -8px rgba(32,35,45,.12);
+    font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15171c;
+      --surface:#1d2027;
+      --surface-2:#252831;
+      --ink:#eceef2;
+      --ink-soft:#b0b4c0;
+      --ink-faint:#7d8190;
+      --line:#31353f;
+      --accent:#7fa2d6;
+      --accent-soft:#26344a;
+      --accent-2:#d3b57c;
+      --tag-stage1:#7fa2d6;
+      --tag-exam:#d3b57c;
+      --tag-final:#7fc7a0;
+      --tag-gyogwa:#b6a7e0;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 20px -10px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15171c;
+    --surface:#1d2027;
+    --surface-2:#252831;
+    --ink:#eceef2;
+    --ink-soft:#b0b4c0;
+    --ink-faint:#7d8190;
+    --line:#31353f;
+    --accent:#7fa2d6;
+    --accent-soft:#26344a;
+    --accent-2:#d3b57c;
+    --tag-stage1:#7fa2d6;
+    --tag-exam:#d3b57c;
+    --tag-final:#7fc7a0;
+    --tag-gyogwa:#b6a7e0;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 20px -10px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    margin:0;
+    padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+  h1,h2,h3{font-family:"Noto Serif KR", Georgia, serif; margin:0; text-wrap:balance;}
+  .wrap{max-width:920px; margin:0 auto; padding:20px 16px 12px;}
+
+  header.top{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+    background:var(--bg);
+    border-bottom:1px solid var(--line);
+    padding-bottom:10px;
+  }
+  .titlebar{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .titlebar h1{font-size:1.4rem; font-weight:600; letter-spacing:-.01em;}
+  .titlebar .sub{color:var(--ink-soft); font-size:.82rem;}
+
+  .searchrow{margin-top:12px; position:relative;}
+  .searchrow input{
+    width:100%; font-size:1rem; padding:12px 42px 12px 40px;
+    border-radius:12px; border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    outline:none;
+  }
+  .searchrow input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+  .searchrow .icon{position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--ink-faint); pointer-events:none;}
+  .searchrow .clear{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    border:none; background:none; color:var(--ink-faint); cursor:pointer; padding:6px; border-radius:8px; display:none;
+  }
+  .searchrow .clear:hover{background:var(--surface-2);}
+
+  .suggest{
+    position:absolute; left:0; right:0; top:calc(100% + 6px);
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    box-shadow:var(--shadow); overflow:hidden; z-index:30; max-height:260px; overflow-y:auto;
+  }
+  .suggest button{
+    display:block; width:100%; text-align:left; border:none; background:none; color:var(--ink);
+    padding:10px 14px; font-size:.94rem; cursor:pointer; border-bottom:1px solid var(--line);
+  }
+  .suggest button:last-child{border-bottom:none;}
+  .suggest button:hover, .suggest button.active{background:var(--accent-soft);}
+  .suggest .cnt{color:var(--ink-faint); font-size:.8rem; float:right;}
+
+  .controls{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; flex-wrap:wrap;}
+  .viewtoggle{display:inline-flex; background:var(--surface-2); border-radius:10px; padding:3px; gap:2px;}
+  .viewtoggle button{
+    border:none; background:none; color:var(--ink-soft); font-size:.86rem; font-weight:600;
+    padding:7px 14px; border-radius:8px; cursor:pointer;
+  }
+  .viewtoggle button.active{background:var(--surface); color:var(--accent); box-shadow:var(--shadow);}
+  .legend{display:flex; gap:12px; font-size:.76rem; color:var(--ink-soft); flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
+  .dot.stage1{background:var(--tag-stage1);}
+  .dot.exam{background:var(--tag-exam);}
+  .dot.final{background:var(--tag-final);}
+
+  .typefilter{display:flex; gap:6px; flex-wrap:wrap;}
+  .typefilter button{
+    border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:.78rem; font-weight:600;
+    padding:6px 12px; border-radius:20px; cursor:pointer;
+  }
+  .typefilter button:hover{border-color:var(--accent);}
+  .typefilter button.active{background:var(--accent); border-color:var(--accent); color:var(--bg);}
+
+  main{max-width:920px; margin:0 auto; padding:14px 16px 20px;}
+
+  /* Calendar */
+  .cal-head{display:flex; align-items:center; justify-content:space-between; margin:6px 0 10px;}
+  .cal-head .navbtn{
+    border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:9px;
+    width:34px; height:34px; font-size:1rem; cursor:pointer;
+  }
+  .cal-head .navbtn:hover{background:var(--surface-2);}
+  .cal-head h2{font-size:1.15rem;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
+  .cal-grid .dow{text-align:center; font-size:.72rem; color:var(--ink-faint); padding-bottom:4px; font-weight:600;}
+  .cal-cell{
+    min-height:60px; border-radius:10px; border:1px solid var(--line); background:var(--surface);
+    padding:4px; display:flex; flex-direction:column; gap:2px; cursor:default; min-width:0;
+  }
+  .cal-cell.empty{border-color:transparent; background:transparent;}
+  .cal-cell.has-events{cursor:pointer;}
+  .cal-cell.has-events:hover{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft);}
+  .cal-cell.selected{border-color:var(--accent); background:var(--accent-soft);}
+  .cal-cell .num{font-size:.72rem; color:var(--ink-soft); font-variant-numeric:tabular-nums;}
+  .cal-cell.today .num{color:var(--accent); font-weight:700;}
+  .cal-chips{display:flex; flex-direction:column; gap:2px; margin-top:1px;}
+  .cal-chip{
+    font-size:.56rem; line-height:1.25; padding:1px 3px; border-radius:4px; font-weight:700;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .cal-chip.stage1{background:var(--accent-soft); color:var(--tag-stage1);}
+  .cal-chip.exam{background:#f6ecd9; color:var(--tag-exam);}
+  .cal-chip.final{background:#e5f2ea; color:var(--tag-final);}
+  .cal-chip.more{background:none; color:var(--ink-faint); font-weight:600; padding:1px 2px;}
+  :root[data-theme="dark"] .cal-chip.exam{background:#3a2f1a;}
+  :root[data-theme="dark"] .cal-chip.final{background:#1e3327;}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .cal-chip.exam{background:#3a2f1a;}
+    :root:not([data-theme="light"]) .cal-chip.final{background:#1e3327;}
+  }
+  @media (max-width:480px){
+    .cal-chip{font-size:.5rem; padding:1px 2px;}
+    .cal-cell{min-height:52px; padding:3px;}
+  }
+
+  .day-detail{margin-top:16px;}
+  .day-detail h3{font-size:.95rem; color:var(--ink-soft); font-weight:600; margin-bottom:8px;}
+
+  /* Cards (list + day-detail) */
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow);
+  }
+  .card .headline{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .card .uni{font-family:"Noto Serif KR", serif; font-size:1.05rem; font-weight:700;}
+  .card .type{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
+  .tag{
+    font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:6px; letter-spacing:.02em;
+    display:inline-block; margin-left:4px; vertical-align:1px;
+  }
+  .tag.인문{background:var(--accent-soft); color:var(--accent);}
+  .tag.자연{background:#e5f2ea; color:var(--tag-final);}
+  .tag.논술{background:#f6ecd9; color:var(--tag-exam);}
+  .tag.교과{background:#eae6f5; color:var(--tag-gyogwa);}
+  :root[data-theme="dark"] .tag.자연{background:#1e3327; color:var(--tag-final);}
+  :root[data-theme="dark"] .tag.논술{background:#3a2f1a; color:var(--tag-exam);}
+  :root[data-theme="dark"] .tag.교과{background:#2a2540; color:var(--tag-gyogwa);}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .tag.자연{background:#1e3327; color:var(--tag-final);}
+    :root:not([data-theme="light"]) .tag.논술{background:#3a2f1a; color:var(--tag-exam);}
+    :root:not([data-theme="light"]) .tag.교과{background:#2a2540; color:var(--tag-gyogwa);}
+  }
+
+  .events{display:flex; flex-direction:column; gap:6px; margin-top:10px;}
+  .event{
+    display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:9px; background:var(--surface-2);
+    font-size:.86rem; flex-wrap:wrap;
+  }
+  .event .elabel{font-weight:700; min-width:60px; font-size:.74rem; text-transform:uppercase; letter-spacing:.03em;}
+  .event.stage1 .elabel{color:var(--tag-stage1);}
+  .event.exam .elabel{color:var(--tag-exam);}
+  .event.final .elabel{color:var(--tag-final);}
+  .event .edate{font-variant-numeric:tabular-nums; font-weight:600;}
+  .event .enote{color:var(--ink-faint); font-size:.78rem; flex-basis:100%;}
+  .gcal-btn{
+    margin-left:auto; display:inline-flex; align-items:center; gap:5px; text-decoration:none;
+    font-size:.74rem; font-weight:600; color:var(--accent); background:var(--surface); border:1px solid var(--line);
+    padding:5px 9px; border-radius:8px; white-space:nowrap;
+  }
+  .gcal-btn:hover{border-color:var(--accent); background:var(--accent-soft);}
+  .gcal-btn svg{width:12px; height:12px;}
+
+  .note-line{font-size:.76rem; color:var(--ink-faint); margin-top:8px; line-height:1.5;}
+
+  .empty-state{text-align:center; color:var(--ink-faint); padding:40px 20px; font-size:.92rem;}
+
+  footer{
+    max-width:920px; margin:20px auto 0; padding:14px 16px 30px; color:var(--ink-faint); font-size:.72rem;
+    line-height:1.7; border-top:1px solid var(--line);
+  }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="titlebar">
+      <h1>수시 면접·발표 검색기</h1>
+      <span class="sub">2027학년도 수시모집 · 학생부종합 / 논술 / 학생부교과(한양대·외대)</span>
+    </div>
+    <div class="searchrow">
+      <span class="icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input id="search" type="text" placeholder="대학교 이름으로 검색 (예: 연세대, 한양대...)" autocomplete="off">
+      <button class="clear" id="clearBtn" aria-label="지우기">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="suggest" id="suggest" hidden></div>
+    </div>
+    <div class="controls">
+      <div class="viewtoggle">
+        <button id="btnList" class="active">리스트</button>
+        <button id="btnCal">월간 달력</button>
+      </div>
+      <div class="typefilter" id="typeFilter">
+        <button data-type="interview">면접형</button>
+        <button data-type="essay">논술형</button>
+        <button data-type="document">서류형</button>
+        <button data-type="equity">기회균형</button>
+      </div>
+      <div class="legend">
+        <span><span class="dot stage1"></span>1차 발표</span>
+        <span><span class="dot exam"></span>면접/논술</span>
+        <span><span class="dot final"></span>최종 발표</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="listView"></section>
+
+  <section id="calView" hidden>
+    <div class="cal-head">
+      <button class="navbtn" id="prevMonth" aria-label="이전 달">‹</button>
+      <h2 id="calTitle">2026년 9월</h2>
+      <button class="navbtn" id="nextMonth" aria-label="다음 달">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="day-detail" id="dayDetail"></div>
+  </section>
+</main>
+
+<footer>
+  본 자료는 각 대학 2027학년도 수시모집요강(원문 PDF)을 근거로 정리한 것이며, 지역균형(교과) 전형은 제외했고 학생부교과 전형은 한양대·외대만 포함했습니다.
+  일정은 인문계열(또는 대표 계열) 기준으로 표기했으며 모집단위·계열별로 날짜가 다를 수 있습니다. 대학 사정에 따라 변경될 수 있으니
+  반드시 각 대학 입학처 홈페이지 공지로 최종 확인하시기 바랍니다.
+</footer>
+
+<script>
+(function(){
+  var DATA = [{"univ":"가천대","type":"가천바람개비전형","track":"인문","cat":"종합","stage1":"2026-10-29","exam":"2026-10-31","examEnd":"2026-11-01","examNote":"학과별 10/31~11/1, 11/7~11/8 중 배정","final":"2026-11-14"},{"univ":"가천대","type":"가천의약학전형","track":"자연","cat":"종합","stage1":"2026-12-09","exam":"2026-12-14","examNote":"의예과 12/14, 약학과 12/15","final":"2026-12-18"},{"univ":"가톨릭대","type":"잠재능력우수자면접전형","track":"인문","cat":"종합","stage1":"2026-11-27","exam":"2026-12-05","final":"2026-12-18"},{"univ":"가톨릭대","type":"학교장추천전형","track":"인문","cat":"종합","stage1":"2026-11-27","exam":"2026-12-05","examNote":"약학과 12/5, 의예과 11/28(인적성면접)","final":"2026-12-18"},{"univ":"건국대","type":"KU자기추천전형","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-12-06","examNote":"문과대·경영대 등 인문계열 기준(자연계열 12/5)","final":"2026-12-18"},{"univ":"건국대","type":"KU논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-22","examNote":"인문·통합(자연 11/21)","final":"2026-12-18"},{"univ":"경기대","type":"KGU학생부종합전형","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-12-05","final":"2026-12-18"},{"univ":"경기대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-27","examNote":"인문계열","final":"2026-12-18"},{"univ":"경희대","type":"네오르네상스전형","track":"인문","cat":"종합","stage1":"2026-11-25","exam":"2026-12-05","examEnd":"2026-12-06","final":"2026-12-18"},{"univ":"경희대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-21","examEnd":"2026-11-22","final":"2026-12-18"},{"univ":"고려대","type":"계열적합전형","track":"인문","cat":"종합","stage1":"2026-10-30","exam":"2026-11-07","examNote":"인문(자연 11/8)","final":"2026-12-18"},{"univ":"고려대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-22","examNote":"인문(자연 11/21)","final":"2026-12-18"},{"univ":"국민대","type":"국민프런티어전형","track":"인문","cat":"종합","stage1":"2026-11-17","exam":"2026-11-22","examNote":"인문계/예체능계(자연계 11/21)","final":"2026-12-18"},{"univ":"국민대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-12-05","examNote":"인문계(자연계 12/6)","final":"2026-12-18"},{"univ":"단국대","type":"DKU인재전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-12-05","examNote":"인문계열(자연계열 12/6)","final":"2026-12-18"},{"univ":"단국대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-10-18","examNote":"인문계열(자연계열 10/17)","final":"2026-12-18"},{"univ":"덕성여대","type":"덕성인재전형Ⅱ","track":"인문","cat":"종합","stage1":"2026-11-12","exam":"2026-11-22","examNote":"글로벌융합대학(인문사회) 기준","final":"2026-12-18"},{"univ":"덕성여대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-29","final":"2026-12-18"},{"univ":"동국대","type":"Do Dream전형","track":"인문","cat":"종합","stage1":"2026-11-13","exam":"2026-12-11","examEnd":"2026-12-13","final":"2026-12-18"},{"univ":"동국대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-22","examNote":"인문계열Ⅰ·Ⅱ(자연계열 09:30)","final":"2026-12-18"},{"univ":"동덕여대","type":"동덕창의리더전형","track":"인문","cat":"종합","stage1":"2026-10-27","exam":"2026-10-31","examEnd":"2026-11-01","final":"2026-11-17","examNote":"약학과는 최종발표 12/18"},{"univ":"동덕여대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-28","final":"2026-12-18"},{"univ":"명지대","type":"명지인재면접전형","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-11-29","examNote":"인문캠퍼스(자연캠퍼스 11/28)","final":"2026-12-09"},{"univ":"상명대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-10-30","examNote":"인문(자연 10/31)","final":"2026-12-03"},{"univ":"서강대","type":"논술(일반)전형","track":"논술","cat":"논술","exam":"2026-11-22","examNote":"인문(자연 11/21)","final":"2026-12-18"},{"univ":"서울대","type":"일반전형","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-11-27","examNote":"전모집단위(수의과대학·의과대학·치의학대학원 치의학과 제외) 기준, 사범대학 교직적성·인성면접 포함(수의과대학·의과대학·치의학대학원 치의학과는 11/28)","final":"2026-12-18"},{"univ":"서울대","type":"기회균형특별전형(사회통합)","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-12-04","examNote":"전모집단위 대부분 기준(수의과대학·음악대학·의과대학은 12/5)","final":"2026-12-18"},{"univ":"서울시립대","type":"학생부종합전형Ⅰ(면접형)","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-11-28","examNote":"인문계열·예체능계열(자연계열 11/29)","final":"2026-12-18"},{"univ":"서울시립대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-10-03","final":"2026-12-18"},{"univ":"서울여대","type":"바롬인재면접전형","track":"인문","cat":"종합","stage1":"2026-11-25","exam":"2026-11-28","final":"2026-12-18"},{"univ":"서울여대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-21","final":"2026-12-18"},{"univ":"성균관대","type":"성균인재전형","track":"인문","cat":"종합","stage1":"2026-12-01","exam":"2026-12-06","examNote":"자유전공계열·글로벌AI융합학부·의예과 기준(사범대학은 11/3 발표, 11/8 면접)","final":"2026-12-18"},{"univ":"성균관대","type":"논술위주전형(언어형)","track":"논술","cat":"논술","exam":"2026-11-21","examEnd":"2026-11-22","final":"2026-12-18"},{"univ":"성신여대","type":"자기주도인재전형","track":"인문","cat":"종합","stage1":"2026-11-13","exam":"2026-11-21","examEnd":"2026-11-22","examNote":"1차 면접일(2차 면접 11/28~29)","final":"2026-12-18"},{"univ":"성신여대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-10-04","examNote":"인문계(자연계 10/3)","final":"2026-12-18"},{"univ":"세종대","type":"세종창의인재전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-13","exam":"2026-11-22","examNote":"인문계열(자연계열도 동일)","final":"2026-12-18"},{"univ":"세종대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-28","examNote":"인문계열(자연계열 11/29)","final":"2026-12-18"},{"univ":"숙명여대","type":"숙명인재전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-19","exam":"2026-11-28","examEnd":"2026-11-29","final":"2026-12-18"},{"univ":"숙명여대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-21","examEnd":"2026-11-22","examNote":"인문계(자연계 의류학과 제외 동일)","final":"2026-12-18"},{"univ":"숭실대","type":"SSU미래인재전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-23","exam":"2026-11-27","final":"2026-12-18"},{"univ":"숭실대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-21","final":"2026-12-18"},{"univ":"아주대","type":"ACE전형","track":"인문","cat":"종합","stage1":"2026-11-17","exam":"2026-11-29","examNote":"경영대학·인문대학·사회과학대학 기준","final":"2026-12-18"},{"univ":"아주대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-12-06","examNote":"인문계열(자연계열 12/5)","final":"2026-12-18"},{"univ":"연세대","type":"활동우수형","track":"인문","cat":"종합","stage1":"2026-11-16","exam":"2026-11-21","examNote":"인문·통합(자연 11/22)","final":"2026-12-18"},{"univ":"연세대","type":"학생부종합전형[국제형](UIC-HASS)","track":"인문","cat":"종합","stage1":"2026-11-23","exam":"2026-11-29","examNote":"언더우드국제대학(UIC) HASS(인문사회계열) 기준. 서류60+면접40, 수능최저 적용","final":"2026-12-18"},{"univ":"연세대","type":"학생부종합전형[국제인재]","track":"인문","cat":"종합","stage1":"2026-10-26","exam":"2026-11-01","examNote":"해외 소재 고등학교 또는 국내 학력인정 외국교육기관 출신자만 지원 가능(국내 일반고 출신 지원 불가). 서류60+면접40, 수능최저 미적용","final":"2026-12-18"},{"univ":"연세대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-10-10","final":"2026-12-18"},{"univ":"이화여대","type":"미래인재전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-12","exam":"2026-11-21","examNote":"인문과학대·경영대 등(자연계 일부 11/22)","final":"2026-12-03"},{"univ":"이화여대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-28","examNote":"인문Ⅰ·Ⅱ(자연 11/29)","final":"2026-12-17"},{"univ":"인천대","type":"자기추천전형","track":"인문","cat":"종합","stage1":"2026-11-06","exam":"2026-11-21","final":"2026-12-18"},{"univ":"인하대","type":"인하미래인재전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-17","exam":"2026-11-21","examNote":"경영대·사범대(수학교육 제외)·사회과학대 등","final":"2026-12-18"},{"univ":"인하대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-12-05","examNote":"인문계열(자연계열 12/6)","final":"2026-12-18"},{"univ":"중앙대","type":"탐구형인재전형","track":"인문","cat":"종합","stage1":"2026-11-26","exam":"2026-12-05","examEnd":"2026-12-06","final":"2026-12-18"},{"univ":"중앙대","type":"논술(일반형)","track":"논술","cat":"논술","exam":"2026-11-29","examNote":"인문(자연 11/28)","final":"2026-12-18"},{"univ":"중앙대","type":"논술(창의형)","track":"논술","cat":"논술","exam":"2026-10-11","final":"2026-12-18","examNote":"인문·자연 공통 시행(2027학년도 신설). 수능 이전 실시, 수능최저학력기준 없음"},{"univ":"한국외대","type":"학생부종합전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-16","exam":"2026-11-21","examNote":"서울캠퍼스 기준(글로벌캠퍼스는 별도 항목 참고)","final":"2026-12-18"},{"univ":"한국외대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-28","examNote":"인문계(사회계도 동일, 자연계 11/29)","final":"2026-12-18"},{"univ":"한국외대","type":"학교장추천전형","track":"교과","cat":"교과","final":"2026-12-18","examNote":"별도 면접·고사 없음(학생부교과 100% 일괄합산)"},{"univ":"한양대","type":"학생부종합전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-13","exam":"2026-12-06","examNote":"사범대학 기준(공과대학·자연 11/22, 의과대학 12/5)","final":"2026-12-18"},{"univ":"한양대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-28","examNote":"상경·인문계열(자연계열 11/29)","final":"2026-12-18"},{"univ":"한양대","type":"학생부교과전형(추천형)","track":"교과","cat":"교과","final":"2026-12-18","examNote":"별도 면접·고사 없음(학생부교과 100% 일괄합산)"},{"univ":"홍익대","type":"논술전형","track":"논술","cat":"논술","exam":"2026-10-04","examNote":"인문계열·예술학과(자연계열 10/3)","final":"2026-12-18"},{"univ":"한동대","type":"G-IMPACT인재전형","track":"인문","cat":"종합","stage1":"2026-11-11","exam":"2026-11-21","final":"2026-11-27"},{"univ":"연세대(미래캠퍼스)","type":"학생부종합전형(면접형)","track":"인문","cat":"종합","stage1":"2026-10-27","exam":"2026-10-31","examNote":"의예과는 별도 일정(면접대상자발표 11/24, 면접 11/28)","final":"2026-12-18"},{"univ":"연세대(미래캠퍼스)","type":"학생부종합전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"연세대(미래캠퍼스)","type":"논술전형","track":"논술","cat":"논술","exam":"2026-10-16","final":"2026-12-18"},{"univ":"한양대(에리카)","type":"학생부종합전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-13","exam":"2026-11-21","final":"2026-12-18"},{"univ":"한양대(에리카)","type":"학생부종합전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"건국대(글로컬)","type":"Cogito자기추천전형","track":"인문","cat":"종합","stage1":"2026-11-19","exam":"2026-11-29","examNote":"인문계열 기준(의예과는 11/28)","final":"2026-12-17"},{"univ":"이화여대","type":"미래인재전형(서류형)","track":"인문","cat":"종합","final":"2026-12-17","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"서울시립대","type":"학생부종합전형Ⅱ(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"숭실대","type":"SSU미래인재전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"세종대","type":"세종창의인재전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"단국대","type":"DKU인재전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"명지대","type":"명지인재서류전형","track":"인문","cat":"종합","final":"2026-12-09","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"성균관대","type":"탐구인재전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산), 12/18 이전 발표 예정"},{"univ":"인하대","type":"인하미래인재전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"한국외대","type":"학생부종합전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"한양대","type":"학생부종합전형(서류형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"고려대","type":"학업우수전형","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄선발)"},{"univ":"서울여대","type":"바롬인재서류전형","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"고려대(세종)","type":"크림슨인재전형","track":"인문","cat":"종합","final":"2026-12-18","examNote":"전국 지원 가능한 유일한 일반 학생부종합전형(서류 100% 일괄선발, 면접 없음). 지역인재전형 등은 충청권 거주자로 제한되어 제외"},{"univ":"고려대(세종)","type":"논술전형","track":"논술","cat":"논술","exam":"2026-11-28","final":"2026-12-18"},{"univ":"한국외대(글로벌)","type":"학생부종합전형(면접형)","track":"인문","cat":"종합","stage1":"2026-11-16","exam":"2026-11-22","examNote":"용인 글로벌캠퍼스 기준(서울캠퍼스는 11/21)","final":"2026-12-18"},{"univ":"가천대","type":"기회균형 전형","track":"인문","cat":"종합","stage1":"2026-09-30","exam":"2026-10-03","examEnd":"2026-10-04","final":"2026-11-14"},{"univ":"가톨릭대","type":"기회균형Ⅰ전형","track":"인문","cat":"종합","final":"2026-11-27","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"경희대","type":"학생부종합(기회균형전형Ⅰ)","track":"인문","cat":"종합","final":"2026-11-27","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"국민대","type":"기회균형Ⅰ전형","track":"인문","cat":"종합","stage1":"2026-11-10","exam":"2026-11-14","final":"2026-12-18"},{"univ":"단국대","type":"기회균형선발","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"덕성여대","type":"기회균형전형Ⅱ(사회통합)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"동국대","type":"기회균형통합","track":"인문","cat":"종합","stage1":"2026-11-13","exam":"2026-12-11","examEnd":"2026-12-13","final":"2026-12-18"},{"univ":"동덕여대","type":"기회균형 특별전형","track":"인문","cat":"종합","final":"2026-11-17","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"명지대","type":"학생부교과(기회균형전형)","track":"교과","cat":"교과","final":"2026-12-09","examNote":"별도 면접 없음(학생부교과 100% 일괄합산)"},{"univ":"상명대","type":"기회균형전형","track":"인문","cat":"종합","final":"2026-12-03","examNote":"대부분 모집단위 서류 100% 일괄합산(스포츠건강관리전공·조형예술전공 등 일부는 면접 포함)"},{"univ":"서강대","type":"학생부종합(기회균형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류평가 100% 일괄합산)"},{"univ":"서울시립대","type":"기회균형전형Ⅰ","track":"인문","cat":"종합","stage1":"2026-11-20","exam":"2026-11-28","examNote":"인문계열·예체능계열(자연계열 11/29)","final":"2026-12-18"},{"univ":"서울여대","type":"기회균형전형(사회통합지원)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"성균관대","type":"학생부종합(기회균형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"성신여대","type":"기회균형Ⅰ전형","track":"인문","cat":"종합","stage1":"2026-11-13","exam":"2026-11-21","examEnd":"2026-11-22","final":"2026-12-18"},{"univ":"세종대","type":"기회균형 전형","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"숙명여대","type":"기회균형전형","track":"인문","cat":"종합","stage1":"2026-11-19","exam":"2026-11-28","examEnd":"2026-11-29","final":"2026-12-18"},{"univ":"숭실대","type":"기회균형전형","track":"인문","cat":"종합","stage1":"2026-11-23","exam":"2026-11-27","final":"2026-12-18"},{"univ":"연세대","type":"학생부종합전형[기회균형]","track":"인문","cat":"종합","stage1":"2026-10-26","exam":"2026-11-01","final":"2026-12-18"},{"univ":"이화여대","type":"학생부종합(고른기회전형)","track":"인문","cat":"종합","final":"2026-12-03","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"인천대","type":"기회균형전형","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"중앙대","type":"학생부종합(기회균형)","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"한국외대","type":"기회균형전형","track":"인문","cat":"종합","final":"2026-12-18","examNote":"별도 면접 없음(서류 100% 일괄합산)"},{"univ":"삼육대","type":"논술우수자전형","track":"논술","cat":"논술","exam":"2026-11-23","examEnd":"2026-11-24","final":"2026-12-15","examNote":"수능최저학력기준 적용"},{"univ":"차의과학대학교","type":"학생부교과(CHA학생부교과전형)","track":"자연","cat":"교과","stage1":"2026-10-27","exam":"2026-10-30","examEnd":"2026-11-01","examNote":"간호대학·약학대학·글로벌미래인재대학 모집(의예과 없음). 1단계 학생부교과 100%(5배수)+2단계 면접 30% 반영","final":"2026-12-18"},{"univ":"차의과학대학교","type":"학생부종합(CHA학생부종합전형)","track":"자연","cat":"종합","stage1":"2026-11-03","exam":"2026-11-06","examEnd":"2026-11-08","examNote":"간호대학·약학대학·글로벌미래인재대학 모집(의예과 없음)","final":"2026-12-18"}];
+
+  // Classify an entry as equity(기회균형) / essay(논술) / interview(면접형 학종) / document(서류형 학종) / other(교과 등)
+  function classify(d){
+    if(d.type.indexOf('기회균형') !== -1 || d.type.indexOf('고른기회') !== -1) return 'equity';
+    if(d.cat === '논술') return 'essay';
+    if(d.cat === '종합') return d.exam ? 'interview' : 'document';
+    return 'other';
+  }
+
+  // Normalize each admission entry into up to 3 timeline events.
+  function buildEvents(){
+    var events = [];
+    DATA.forEach(function(d, idx){
+      var tc = classify(d);
+      if(d.stage1){
+        events.push({uni:d.univ, type:d.type, track:d.track, cat:d.cat, typeClass:tc, kind:'stage1', label:'1차 발표', date:d.stage1, idx:idx});
+      }
+      if(d.exam){
+        var lbl = d.cat === '논술' ? '논술고사' : '면접';
+        events.push({uni:d.univ, type:d.type, track:d.track, cat:d.cat, typeClass:tc, kind:'exam', label:lbl, date:d.exam, dateEnd:d.examEnd, note:d.examNote, idx:idx});
+      }
+      if(d.final){
+        events.push({uni:d.univ, type:d.type, track:d.track, cat:d.cat, typeClass:tc, kind:'final', label:'최종 발표', date:d.final, note: (!d.stage1 && !d.exam) ? d.examNote : null, idx:idx});
+      }
+    });
+    events.sort(function(a,b){ return a.date.localeCompare(b.date); });
+    return events;
+  }
+  var EVENTS = buildEvents();
+
+  var state = { query:'', view:'list', typeFilter:'all', calYear:2026, calMonth:9 /*1-indexed*/, selectedDate:null };
+
+  function norm(s){ return (s||'').toLowerCase(); }
+
+  function matches(uniName){
+    if(!state.query) return true;
+    return norm(uniName).indexOf(norm(state.query)) !== -1;
+  }
+
+  function matchesType(tc){
+    return state.typeFilter === 'all' || state.typeFilter === tc;
+  }
+
+  // 리스트 뷰: 검색어 + 전형유형 필터 모두 적용
+  function filteredEntries(){
+    return DATA.filter(function(d){ return matches(d.univ) && matchesType(classify(d)); });
+  }
+  function filteredEvents(){
+    return EVENTS.filter(function(e){ return matches(e.uni) && matchesType(e.typeClass); });
+  }
+  // 달력 뷰: 검색어와 무관하게 항상 모든 대학 표시, 전형유형 필터만 적용
+  function calendarEvents(){
+    return EVENTS.filter(function(e){ return matchesType(e.typeClass); });
+  }
+
+  // ---------- Google Calendar link ----------
+  function pad(n){ return n<10 ? '0'+n : ''+n; }
+  function toYmd(dateStr){ return dateStr.replace(/-/g,''); }
+  function addDays(dateStr, n){
+    var d = new Date(dateStr+'T00:00:00');
+    d.setDate(d.getDate()+n);
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+  function gcalLink(ev){
+    var start = ev.date;
+    var endBase = ev.dateEnd || ev.date;
+    var end = addDays(endBase, 1); // Google's all-day end date is exclusive
+    var title = ev.uni + ' ' + ev.type + ' - ' + ev.label;
+    var details = [ev.type + ' (' + ev.track + ')', ev.note ? ev.note : ''].filter(Boolean).join('\n') +
+      '\n\n수시 면접·발표 검색기에서 추가됨. 정확한 일정은 대학 입학처 홈페이지에서 재확인하세요.';
+    var params = new URLSearchParams({
+      action:'TEMPLATE',
+      text:title,
+      dates: toYmd(start) + '/' + toYmd(end),
+      details: details
+    });
+    return 'https://calendar.google.com/calendar/render?' + params.toString();
+  }
+  function gcalBtn(ev){
+    return '<a class="gcal-btn" target="_blank" rel="noopener" href="'+gcalLink(ev)+'">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>'+
+      '구글캘린더 저장</a>';
+  }
+
+  function fmtDate(dateStr, dateEnd){
+    var d = new Date(dateStr+'T00:00:00');
+    var dows = ['일','월','화','수','목','금','토'];
+    var base = (d.getMonth()+1)+'.'+d.getDate()+'('+dows[d.getDay()]+')';
+    if(dateEnd && dateEnd !== dateStr){
+      var d2 = new Date(dateEnd+'T00:00:00');
+      base += ' ~ ' + (d2.getMonth()+1)+'.'+d2.getDate()+'('+dows[d2.getDay()]+')';
+    }
+    return base;
+  }
+
+  function esc(s){ return (s||'').replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+
+  // ---------- Card rendering (shared by list view + day detail) ----------
+  function renderCard(d){
+    var html = '<div class="card">';
+    html += '<div class="headline"><div><span class="uni">'+esc(d.univ)+'</span> <span class="type">'+esc(d.type)+'</span></div>' +
+            '<span class="tag '+d.track+'">'+d.track+'</span></div>';
+    html += '<div class="events">';
+    if(d.stage1){
+      var e1 = {uni:d.univ,type:d.type,track:d.track,label:'1차 발표',date:d.stage1};
+      html += '<div class="event stage1"><span class="elabel">1차발표</span><span class="edate">'+fmtDate(d.stage1)+'</span>'+gcalBtn(e1)+'</div>';
+    }
+    if(d.exam){
+      var lbl = d.cat==='논술' ? '논술고사' : '면접';
+      var e2 = {uni:d.univ,type:d.type,track:d.track,label:lbl,date:d.exam,dateEnd:d.examEnd,note:d.examNote};
+      html += '<div class="event exam"><span class="elabel">'+lbl+'</span><span class="edate">'+fmtDate(d.exam,d.examEnd)+'</span>'+gcalBtn(e2)+
+              (d.examNote ? '<span class="enote">'+esc(d.examNote)+'</span>' : '')+'</div>';
+    }
+    if(d.final){
+      var e3 = {uni:d.univ,type:d.type,track:d.track,label:'최종 발표',date:d.final,note:(!d.stage1&&!d.exam)?d.examNote:null};
+      html += '<div class="event final"><span class="elabel">최종발표</span><span class="edate">'+fmtDate(d.final)+'</span>'+gcalBtn(e3)+
+              (e3.note ? '<span class="enote">'+esc(e3.note)+'</span>' : '')+'</div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  // ---------- List view ----------
+  function renderList(){
+    var el = document.getElementById('listView');
+    var entries = filteredEntries();
+    if(entries.length === 0){
+      el.innerHTML = '<div class="empty-state">검색 결과가 없습니다. 대학교 이름을 다시 확인해주세요.</div>';
+      return;
+    }
+    // group by exact university name, sorted by earliest date within each group
+    var byUni = {};
+    entries.forEach(function(d){
+      if(!byUni[d.univ]) byUni[d.univ] = [];
+      byUni[d.univ].push(d);
+    });
+    function earliestOf(key){
+      return byUni[key].map(function(x){return x.stage1||x.exam||x.final;}).sort()[0];
+    }
+    // 캠퍼스 표기(괄호)를 뗀 기본 대학명으로 다시 묶어서, 같은 대학의 본교가 분교보다 항상 먼저 나오게 함
+    function baseName(univ){
+      var i = univ.indexOf('(');
+      return i === -1 ? univ : univ.slice(0, i);
+    }
+    var baseGroups = {};
+    Object.keys(byUni).forEach(function(k){
+      var b = baseName(k);
+      if(!baseGroups[b]) baseGroups[b] = [];
+      baseGroups[b].push(k);
+    });
+    var baseOrder = Object.keys(baseGroups).sort(function(a,b){
+      var da = baseGroups[a].map(earliestOf).sort()[0];
+      var db = baseGroups[b].map(earliestOf).sort()[0];
+      return da.localeCompare(db);
+    });
+    var uniOrder = [];
+    baseOrder.forEach(function(b){
+      var keys = baseGroups[b].slice().sort(function(x,y){
+        var xMain = (x === b), yMain = (y === b);
+        if(xMain && !yMain) return -1;
+        if(!xMain && yMain) return 1;
+        return earliestOf(x).localeCompare(earliestOf(y));
+      });
+      uniOrder = uniOrder.concat(keys);
+    });
+    var html = '';
+    uniOrder.forEach(function(uni){
+      html += '<h3 style="margin:18px 0 8px; font-size:1rem; color:var(--ink-soft);">'+esc(uni)+'</h3>';
+      byUni[uni].forEach(function(d){ html += renderCard(d); });
+    });
+    el.innerHTML = html;
+  }
+
+  // ---------- Calendar view ----------
+  var MONTHS_RANGE = [ [2026,9],[2026,10],[2026,11],[2026,12],[2027,1],[2027,2] ];
+
+  function eventsOnDate(dateStr, evs){
+    return evs.filter(function(e){
+      if(e.dateEnd){
+        return dateStr >= e.date && dateStr <= e.dateEnd;
+      }
+      return e.date === dateStr;
+    });
+  }
+
+  function renderCalendar(){
+    var y = state.calYear, m = state.calMonth;
+    document.getElementById('calTitle').textContent = y + '년 ' + m + '월';
+    var grid = document.getElementById('calGrid');
+    var dows = ['일','월','화','수','목','금','토'];
+    var html = dows.map(function(d){ return '<div class="dow">'+d+'</div>'; }).join('');
+
+    var first = new Date(y, m-1, 1);
+    var startDow = first.getDay();
+    var daysInMonth = new Date(y, m, 0).getDate();
+    var todayStr = (new Date()).toISOString().slice(0,10);
+
+    var evs = calendarEvents();
+
+    for(var i=0;i<startDow;i++){ html += '<div class="cal-cell empty"></div>'; }
+    for(var day=1; day<=daysInMonth; day++){
+      var dateStr = y+'-'+pad(m)+'-'+pad(day);
+      var dayEvs = eventsOnDate(dateStr, evs);
+      var chipHtml = '';
+      var maxChips = 3;
+      dayEvs.slice(0, maxChips).forEach(function(e){
+        var shortLabel = e.kind==='stage1' ? '1차 발표' : (e.kind==='exam' ? (e.cat==='논술' ? '논술' : '면접') : '최종 발표');
+        chipHtml += '<div class="cal-chip '+e.kind+'" title="'+esc(e.uni+' '+e.type+' '+shortLabel)+'">'+esc(e.uni)+' '+shortLabel+'</div>';
+      });
+      if(dayEvs.length > maxChips){ chipHtml += '<div class="cal-chip more">+'+(dayEvs.length-maxChips)+'개 더보기</div>'; }
+      var cls = 'cal-cell' + (dayEvs.length ? ' has-events' : '') + (dateStr===todayStr ? ' today' : '') + (dateStr===state.selectedDate ? ' selected' : '');
+      html += '<div class="'+cls+'" data-date="'+dateStr+'"><span class="num">'+day+'</span><div class="cal-chips">'+chipHtml+'</div></div>';
+    }
+    grid.innerHTML = html;
+
+    Array.prototype.forEach.call(grid.querySelectorAll('.cal-cell.has-events'), function(cell){
+      cell.addEventListener('click', function(){
+        var d = cell.getAttribute('data-date');
+        state.selectedDate = (state.selectedDate === d) ? null : d;
+        renderCalendar();
+        renderDayDetail();
+      });
+    });
+
+    renderDayDetail();
+  }
+
+  function renderDayDetail(){
+    var el = document.getElementById('dayDetail');
+    if(!state.selectedDate){ el.innerHTML=''; return; }
+    var evs = eventsOnDate(state.selectedDate, calendarEvents());
+    if(evs.length === 0){ el.innerHTML=''; return; }
+    var d = new Date(state.selectedDate+'T00:00:00');
+    var dows = ['일','월','화','수','목','금','토'];
+    var title = (d.getMonth()+1)+'월 '+d.getDate()+'일 ('+dows[d.getDay()]+') 일정 — '+evs.length+'건';
+    var html = '<h3>'+title+'</h3>';
+    var seenIdx = {};
+    evs.forEach(function(e){
+      if(seenIdx[e.idx+'-'+e.kind]) return;
+      seenIdx[e.idx+'-'+e.kind] = true;
+      html += '<div class="card" style="margin-bottom:8px;">' +
+        '<div class="headline"><div><span class="uni">'+esc(e.uni)+'</span> <span class="type">'+esc(e.type)+'</span></div>' +
+        '<span class="tag '+e.track+'">'+e.track+'</span></div>' +
+        '<div class="events"><div class="event '+e.kind+'"><span class="elabel">'+esc(e.label)+'</span><span class="edate">'+fmtDate(e.date,e.dateEnd)+'</span>'+gcalBtn(e)+
+        (e.note ? '<span class="enote">'+esc(e.note)+'</span>' : '')+'</div></div></div>';
+    });
+    el.innerHTML = html;
+  }
+
+  // ---------- Search / suggestions ----------
+  var uniList = Array.from(new Set(DATA.map(function(d){return d.univ;}))).sort(function(a,b){return a.localeCompare(b,'ko');});
+
+  function renderSuggest(){
+    var box = document.getElementById('suggest');
+    var q = document.getElementById('search').value.trim();
+    if(!q){ box.hidden = true; box.innerHTML=''; return; }
+    var matched = uniList.filter(function(u){ return norm(u).indexOf(norm(q)) !== -1; });
+    if(matched.length === 0){ box.hidden = true; box.innerHTML=''; return; }
+    box.innerHTML = matched.map(function(u){
+      var cnt = DATA.filter(function(d){return d.univ===u;}).length;
+      return '<button type="button" data-uni="'+esc(u)+'">'+esc(u)+'<span class="cnt">'+cnt+'개 전형</span></button>';
+    }).join('');
+    box.hidden = false;
+    Array.prototype.forEach.call(box.querySelectorAll('button'), function(btn){
+      btn.addEventListener('click', function(){
+        document.getElementById('search').value = btn.getAttribute('data-uni');
+        state.query = btn.getAttribute('data-uni');
+        box.hidden = true;
+        refresh();
+      });
+    });
+  }
+
+  function refresh(){
+    document.getElementById('clearBtn').style.display = state.query ? 'block' : 'none';
+    if(state.view === 'cal'){
+      // 달력은 검색어와 무관하게 항상 전체 대학 대상. 전형유형 필터가 걸려 있으면 해당 유형의 첫 일정이 있는 달로 이동
+      if(state.typeFilter !== 'all'){
+        var evs = calendarEvents();
+        if(evs.length){
+          var first = evs[0].date.split('-');
+          state.calYear = parseInt(first[0],10);
+          state.calMonth = parseInt(first[1],10);
+        }
+      }
+      renderCalendar();
+    } else {
+      renderList();
+    }
+  }
+
+  document.getElementById('search').addEventListener('input', function(e){
+    state.query = e.target.value.trim();
+    renderSuggest();
+    refresh();
+  });
+  document.getElementById('search').addEventListener('focus', renderSuggest);
+  document.addEventListener('click', function(e){
+    var box = document.getElementById('suggest');
+    if(!box.contains(e.target) && e.target.id !== 'search'){ box.hidden = true; }
+  });
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    document.getElementById('search').value='';
+    state.query='';
+    document.getElementById('suggest').hidden = true;
+    refresh();
+  });
+
+  function showCalendarView(){
+    state.view='cal';
+    document.getElementById('btnCal').classList.add('active');
+    document.getElementById('btnList').classList.remove('active');
+    document.getElementById('calView').hidden = false;
+    document.getElementById('listView').hidden = true;
+  }
+  function showListView(){
+    state.view='list';
+    document.getElementById('btnList').classList.add('active');
+    document.getElementById('btnCal').classList.remove('active');
+    document.getElementById('calView').hidden = true;
+    document.getElementById('listView').hidden = false;
+  }
+
+  // 면접형/논술형/서류형 버튼: 클릭 시 해당 유형으로 월간 달력을 보여주며, 검색어와 무관하게 전체 대학이 대상
+  Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button'), function(btn){
+    btn.addEventListener('click', function(){
+      var t = btn.getAttribute('data-type');
+      if(state.typeFilter === t){
+        state.typeFilter = 'all';
+        btn.classList.remove('active');
+      } else {
+        state.typeFilter = t;
+        Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button'), function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+      }
+      state.selectedDate = null;
+      showCalendarView();
+      refresh();
+    });
+  });
+
+  document.getElementById('btnCal').addEventListener('click', function(){
+    showCalendarView();
+    refresh();
+  });
+  document.getElementById('btnList').addEventListener('click', function(){
+    showListView();
+    refresh();
+  });
+
+  document.getElementById('prevMonth').addEventListener('click', function(){
+    var idx = MONTHS_RANGE.findIndex(function(p){return p[0]===state.calYear && p[1]===state.calMonth;});
+    if(idx > 0){ state.calYear = MONTHS_RANGE[idx-1][0]; state.calMonth = MONTHS_RANGE[idx-1][1]; state.selectedDate=null; renderCalendar(); }
+  });
+  document.getElementById('nextMonth').addEventListener('click', function(){
+    var idx = MONTHS_RANGE.findIndex(function(p){return p[0]===state.calYear && p[1]===state.calMonth;});
+    if(idx >= 0 && idx < MONTHS_RANGE.length-1){ state.calYear = MONTHS_RANGE[idx+1][0]; state.calMonth = MONTHS_RANGE[idx+1][1]; state.selectedDate=null; renderCalendar(); }
+  });
+
+  // init: jump calendar to earliest event month (Sept 2026)
+  refresh();
+})();
+</script>
