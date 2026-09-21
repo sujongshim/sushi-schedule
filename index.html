@@ -136,13 +136,6 @@
   }
   .cal-head .navbtn:hover{background:var(--surface-2);}
   .cal-head h2{font-size:1.15rem;}
-  .cal-unifilter{display:flex; align-items:center; gap:8px; margin:0 0 12px; justify-content:flex-end;}
-  .cal-unifilter label{font-size:.78rem; color:var(--ink-soft); font-weight:600;}
-  .cal-unifilter select{
-    font-size:.86rem; padding:7px 10px; border-radius:9px; border:1px solid var(--line);
-    background:var(--surface); color:var(--ink); max-width:60%;
-  }
-  .cal-unifilter select:focus{border-color:var(--accent); outline:none; box-shadow:0 0 0 3px var(--accent-soft);}
   .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
   .cal-grid .dow{text-align:center; font-size:.72rem; color:var(--ink-faint); padding-bottom:4px; font-weight:600;}
   .cal-cell{
@@ -251,13 +244,14 @@
     <div class="controls">
       <div class="viewtoggle">
         <button id="btnList" class="active">리스트</button>
-        <button id="btnCal">월간 달력</button>
+        <button id="btnCal">대학별 달력</button>
+        <button id="btnCalAll">전체달력</button>
       </div>
       <div class="typefilter" id="typeFilter">
         <button data-type="interview">면접형</button>
-        <button data-type="essay">논술형</button>
         <button data-type="document">서류형</button>
         <button data-type="equity">기회균형</button>
+        <button data-type="essay">논술형</button>
       </div>
       <div class="legend">
         <span><span class="dot stage1"></span>1차 발표</span>
@@ -276,12 +270,6 @@
       <button class="navbtn" id="prevMonth" aria-label="이전 달">‹</button>
       <h2 id="calTitle">2026년 9월</h2>
       <button class="navbtn" id="nextMonth" aria-label="다음 달">›</button>
-    </div>
-    <div class="cal-unifilter">
-      <label for="calUniSelect">대학교</label>
-      <select id="calUniSelect">
-        <option value="all">전체 대학</option>
-      </select>
     </div>
     <div class="cal-grid" id="calGrid"></div>
     <div class="day-detail" id="dayDetail"></div>
@@ -328,7 +316,9 @@
   }
   var EVENTS = buildEvents();
 
-  var state = { query:'', view:'list', typeFilter:'all', calUni:'all', calYear:2026, calMonth:9 /*1-indexed*/, selectedDate:null };
+  // calAll: true면 달력이 검색어와 무관하게(전형유형 필터만 적용) 전체 대학을 보여줌("전체달력" 버튼),
+  // false면 검색창에 입력된 대학의 모든 전형을 보여줌(전형유형 필터 무시, "대학별 달력" 버튼)
+  var state = { query:'', view:'list', typeFilter:'all', calAll:true, calYear:2026, calMonth:9 /*1-indexed*/, selectedDate:null };
 
   function norm(s){ return (s||'').toLowerCase(); }
 
@@ -341,20 +331,17 @@
     return state.typeFilter === 'all' || state.typeFilter === tc;
   }
 
-  function matchesCalUni(uniName){
-    return state.calUni === 'all' || state.calUni === uniName;
-  }
-
   // 리스트 뷰: 검색어 + 전형유형 필터 모두 적용
   function filteredEntries(){
     return DATA.filter(function(d){ return matches(d.univ) && matchesType(classify(d)); });
   }
-  function filteredEvents(){
-    return EVENTS.filter(function(e){ return matches(e.uni) && matchesType(e.typeClass); });
-  }
-  // 달력 뷰: 상단 검색창과는 무관하게, 전형유형 필터 + 달력 전용 대학교 메뉴(전체/개별)를 적용
+  // 달력 뷰: state.calAll이 true("전체달력")면 검색어와 무관하게 전형유형 필터만 적용해 전체 대학을 보여줌.
+  // false("대학별 달력")면 검색창에 입력된 대학의 모든 전형을 전형유형 필터와 무관하게 전부 보여줌
   function calendarEvents(){
-    return EVENTS.filter(function(e){ return matchesType(e.typeClass) && matchesCalUni(e.uni); });
+    if(state.calAll){
+      return EVENTS.filter(function(e){ return matchesType(e.typeClass); });
+    }
+    return EVENTS.filter(function(e){ return matches(e.uni); });
   }
 
   // ---------- Google Calendar link ----------
@@ -437,6 +424,12 @@
     entries.forEach(function(d){
       if(!byUni[d.univ]) byUni[d.univ] = [];
       byUni[d.univ].push(d);
+    });
+    // 대학 안에서는 전형유형 순서(면접형→서류형→기회균형→논술형)대로 정렬
+    var CAT_ORDER = { interview:1, document:2, equity:3, essay:4 };
+    function catPriority(d){ return CAT_ORDER[classify(d)] || 5; }
+    Object.keys(byUni).forEach(function(k){
+      byUni[k].sort(function(a,b){ return catPriority(a) - catPriority(b); });
     });
     function earliestOf(key){
       return byUni[key].map(function(x){return x.stage1||x.exam||x.final;}).sort()[0];
@@ -553,15 +546,6 @@
   // ---------- Search / suggestions ----------
   var uniList = Array.from(new Set(DATA.map(function(d){return d.univ;}))).sort(function(a,b){return a.localeCompare(b,'ko');});
 
-  // 달력 전용 대학교 메뉴(전체/개별) 채우기
-  (function populateCalUniSelect(){
-    var sel = document.getElementById('calUniSelect');
-    var opts = '<option value="all">전체 대학</option>' + uniList.map(function(u){
-      return '<option value="'+esc(u)+'">'+esc(u)+'</option>';
-    }).join('');
-    sel.innerHTML = opts;
-  })();
-
   function renderSuggest(){
     var box = document.getElementById('suggest');
     var q = document.getElementById('search').value.trim();
@@ -586,8 +570,8 @@
   function refresh(){
     document.getElementById('clearBtn').style.display = state.query ? 'block' : 'none';
     if(state.view === 'cal'){
-      // 달력은 상단 검색창과는 무관(대학 필터는 calUniSelect로 별도 적용). 전형유형 필터가 걸려 있으면 해당 유형의 첫 일정이 있는 달로 이동
-      if(state.typeFilter !== 'all'){
+      // 달력 진입/갱신 시, (검색어 또는 전형유형 필터로 인해) 걸러진 일정이 있으면 그중 가장 빠른 일정의 달로 이동
+      if(!state.calAll || state.typeFilter !== 'all'){
         var evs = calendarEvents();
         if(evs.length){
           var first = evs[0].date.split('-');
@@ -618,24 +602,11 @@
     refresh();
   });
 
-  document.getElementById('calUniSelect').addEventListener('change', function(e){
-    state.calUni = e.target.value;
-    state.selectedDate = null;
-    // 특정 대학을 선택하면 그 대학의 가장 빠른 일정이 있는 달로 이동(전체 대학 선택 시에는 이동하지 않음)
-    if(state.calUni !== 'all'){
-      var evs = calendarEvents();
-      if(evs.length){
-        var first = evs[0].date.split('-');
-        state.calYear = parseInt(first[0],10);
-        state.calMonth = parseInt(first[1],10);
-      }
-    }
-    renderCalendar();
-  });
-
-  function showCalendarView(){
+  function showCalendarView(calAll){
     state.view='cal';
-    document.getElementById('btnCal').classList.add('active');
+    state.calAll = calAll;
+    document.getElementById('btnCal').classList.toggle('active', !calAll);
+    document.getElementById('btnCalAll').classList.toggle('active', calAll);
     document.getElementById('btnList').classList.remove('active');
     document.getElementById('calView').hidden = false;
     document.getElementById('listView').hidden = true;
@@ -644,11 +615,13 @@
     state.view='list';
     document.getElementById('btnList').classList.add('active');
     document.getElementById('btnCal').classList.remove('active');
+    document.getElementById('btnCalAll').classList.remove('active');
     document.getElementById('calView').hidden = true;
     document.getElementById('listView').hidden = false;
   }
 
-  // 면접형/논술형/서류형 버튼: 클릭 시 해당 유형으로 월간 달력을 보여주며, 검색어와 무관하게 전체 대학이 대상
+  // 면접형/서류형/기회균형/논술형 버튼: 클릭 시 현재 달력 모드를 유지한 채 달력을 보여줌.
+  // (단, "대학별 달력" 모드에서는 이 필터가 달력에 영향을 주지 않음 — 검색된 대학의 모든 전형을 항상 표시)
   Array.prototype.forEach.call(document.querySelectorAll('#typeFilter button'), function(btn){
     btn.addEventListener('click', function(){
       var t = btn.getAttribute('data-type');
@@ -661,13 +634,19 @@
         btn.classList.add('active');
       }
       state.selectedDate = null;
-      showCalendarView();
+      showCalendarView(state.view === 'cal' ? state.calAll : true);
       refresh();
     });
   });
 
+  // 대학별 달력: 검색창에 입력된 대학의 모든 전형 일정을 전형유형 필터와 무관하게 보여줌 (검색어 없으면 전체와 동일)
   document.getElementById('btnCal').addEventListener('click', function(){
-    showCalendarView();
+    showCalendarView(false);
+    refresh();
+  });
+  // 전체달력: 검색어와 무관하게 항상 전체 대학을 보여줌
+  document.getElementById('btnCalAll').addEventListener('click', function(){
+    showCalendarView(true);
     refresh();
   });
   document.getElementById('btnList').addEventListener('click', function(){
