@@ -215,6 +215,15 @@
   }
   .gcal-btn:hover{border-color:var(--accent); background:var(--accent-soft);}
   .gcal-btn svg{width:12px; height:12px;}
+  .result-btn{
+    margin-left:auto; display:inline-flex; align-items:center; gap:5px; text-decoration:none;
+    font-size:.74rem; font-weight:700; color:#fff; background:var(--accent); border:1px solid var(--accent);
+    padding:5px 9px; border-radius:8px; white-space:nowrap;
+  }
+  .result-btn:hover{opacity:.88;}
+  .result-btn.search{color:var(--ink-soft); background:var(--surface); border:1px dashed var(--line); font-weight:600;}
+  .result-btn.search:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft); opacity:1;}
+  .result-btn + .gcal-btn{margin-left:0;}
 
   .note-line{font-size:.76rem; color:var(--ink-faint); margin-top:8px; line-height:1.5;}
 
@@ -282,6 +291,8 @@
   본 자료는 각 대학 2027학년도 수시모집요강(원문 PDF)을 근거로 정리한 것이며, 지역균형(교과) 전형은 제외했고 학생부교과 전형은 한양대·외대만 포함했습니다.
   일정은 인문계열(또는 대표 계열) 기준으로 표기했으며 모집단위·계열별로 날짜가 다를 수 있습니다. 대학 사정에 따라 변경될 수 있으니
   반드시 각 대학 입학처 홈페이지 공지로 최종 확인하시기 바랍니다.
+  "결과 조회" 버튼은 진학사 기사(2026-10-15 기준)에서 발표 페이지가 열린 전형만 연결했고, 수험번호 등 로그인이 필요합니다.
+  나머지 전형의 "발표 검색" 버튼은 구글 검색으로 연결되며, 대학이 발표 페이지를 열면 직접 링크로 바꿉니다.
 </footer>
 
 <script>
@@ -378,6 +389,36 @@
       '구글캘린더 저장</a>';
   }
 
+  // ---------- 합격자 발표 결과 확인 링크 ----------
+  // 1차 발표 줄에만 붙인다. 아래 목록은 진학사 기사(2027 수시 1단계 합격자 발표일, 2026-10-15)에서
+  // 발표 페이지가 이미 열린 전형만 옮긴 것이다. 대학이 이후 발표 페이지를 열면 같은 형식으로 한 줄씩 추가한다.
+  // univ는 DATA의 대학명과 같아야 하고, type은 DATA의 전형명에 포함된 글자(부분 일치)다.
+  var RESULT_LINKS = [
+    {univ:'연세대',   type:'국제인재',     url:'https://www2.yonsei.ac.kr/entrance/2027/susi/pass_1st_bdbhcc/pass.asp'},
+    {univ:'연세대',   type:'기회균형',     url:'https://www2.yonsei.ac.kr/entrance/2027/susi/pass_1st_bdbhcc/pass.asp'},
+    {univ:'고려대',   type:'고른기회',     url:'https://oku.korea.ac.kr/oku/cms/FR_CON/index.do?MENU_ID=1700'},
+    {univ:'고려대',   type:'계열적합',     url:'https://oku.korea.ac.kr/oku/cms/FR_BBS_CON/BoardView.do?MENU_ID=750&CONTENTS_NO=&SITE_NO=2&BOARD_SEQ=5&BBS_SEQ=1816'},
+    {univ:'동덕여대', type:'동덕창의리더', url:'https://trs01.uwayapply.com/049XNID20VJ2CQ0000LPN4/login'},
+    {univ:'성균관대', type:'성균인재전형(스포츠과학과)', url:'https://admission.skku.edu/netfunnel.html?url=%2Fadmission%2Fhtml%2Frolling%2Fpass.html'}
+  ];
+  function resultLinkFor(d){
+    for(var i=0;i<RESULT_LINKS.length;i++){
+      var r = RESULT_LINKS[i];
+      if(d.univ === r.univ && d.type.indexOf(r.type) !== -1) return r.url;
+    }
+    return null;
+  }
+  // kind: 'stage1'(1차 발표) 또는 'final'(최종 발표). 직접 조회 링크가 있으면 "결과 조회", 없으면 "발표 검색"(구글 검색)
+  function resultBtn(d, kind){
+    if(kind !== 'stage1' && kind !== 'final') return '';
+    var direct = kind === 'stage1' ? resultLinkFor(d) : null;
+    if(direct){
+      return '<a class="result-btn" target="_blank" rel="noopener" href="'+direct+'" title="대학 합격자 조회 페이지(수험번호 등 로그인 필요)">결과 조회</a>';
+    }
+    var q = d.univ+' '+d.type+' 2027 수시 '+(kind === 'stage1' ? '1단계 ' : '최종 ')+'합격자 발표';
+    return '<a class="result-btn search" target="_blank" rel="noopener" href="https://www.google.com/search?q='+encodeURIComponent(q)+'" title="구글에서 발표 안내 검색">발표 검색</a>';
+  }
+
   function fmtDate(dateStr, dateEnd){
     var d = new Date(dateStr+'T00:00:00');
     var dows = ['일','월','화','수','목','금','토'];
@@ -399,7 +440,7 @@
     html += '<div class="events">';
     if(d.stage1){
       var e1 = {uni:d.univ,type:d.type,track:d.track,label:'1차 발표',date:d.stage1};
-      html += '<div class="event stage1"><span class="elabel">1차발표</span><span class="edate">'+fmtDate(d.stage1)+'</span>'+gcalBtn(e1)+'</div>';
+      html += '<div class="event stage1"><span class="elabel">1차발표</span><span class="edate">'+fmtDate(d.stage1)+'</span>'+resultBtn(d,'stage1')+gcalBtn(e1)+'</div>';
     }
     if(d.exam){
       var lbl = d.cat==='논술' ? '논술고사' : '면접';
@@ -409,7 +450,7 @@
     }
     if(d.final){
       var e3 = {uni:d.univ,type:d.type,track:d.track,label:'최종 발표',date:d.final,note:(!d.stage1&&!d.exam)?d.examNote:null};
-      html += '<div class="event final"><span class="elabel">최종발표</span><span class="edate">'+fmtDate(d.final)+'</span>'+gcalBtn(e3)+
+      html += '<div class="event final"><span class="elabel">최종발표</span><span class="edate">'+fmtDate(d.final)+'</span>'+resultBtn(d,'final')+gcalBtn(e3)+
               (e3.note ? '<span class="enote">'+esc(e3.note)+'</span>' : '')+'</div>';
     }
     html += '</div></div>';
@@ -542,7 +583,7 @@
       html += '<div class="card" style="margin-bottom:8px;">' +
         '<div class="headline"><div><span class="uni">'+esc(e.uni)+'</span> <span class="type">'+esc(e.type)+'</span></div>' +
         '<span class="tag '+e.track+'">'+e.track+'</span></div>' +
-        '<div class="events"><div class="event '+e.kind+'"><span class="elabel">'+esc(e.label)+'</span><span class="edate">'+fmtDate(e.date,e.dateEnd)+'</span>'+gcalBtn(e)+
+        '<div class="events"><div class="event '+e.kind+'"><span class="elabel">'+esc(e.label)+'</span><span class="edate">'+fmtDate(e.date,e.dateEnd)+'</span>'+resultBtn(DATA[e.idx], e.kind)+gcalBtn(e)+
         (e.note ? '<span class="enote">'+esc(e.note)+'</span>' : '')+'</div></div></div>';
     });
     el.innerHTML = html;
