@@ -292,7 +292,7 @@
   일정은 인문계열(또는 대표 계열) 기준으로 표기했으며 모집단위·계열별로 날짜가 다를 수 있습니다. 대학 사정에 따라 변경될 수 있으니
   반드시 각 대학 입학처 홈페이지 공지로 최종 확인하시기 바랍니다.
   "결과 조회" 버튼은 진학사 기사(2026-10-15 기준)에서 발표 페이지가 열린 전형만 연결했고, 수험번호 등 로그인이 필요합니다.
-  나머지 전형의 "발표 검색" 버튼은 구글 검색으로 연결되며, 대학이 발표 페이지를 열면 직접 링크로 바꿉니다.
+  나머지 전형의 "합격발표" 버튼은 해당 대학 입학처 홈페이지로 연결되며(논술 포함), 대학이 발표 페이지를 열면 직접 링크로 바꿉니다.
 </footer>
 
 <script>
@@ -401,6 +401,59 @@
     {univ:'동덕여대', type:'동덕창의리더', url:'https://trs01.uwayapply.com/049XNID20VJ2CQ0000LPN4/login'},
     {univ:'성균관대', type:'성균인재전형(스포츠과학과)', url:'https://admission.skku.edu/netfunnel.html?url=%2Fadmission%2Fhtml%2Frolling%2Fpass.html'}
   ];
+  // 대학별 입학처(또는 대학) 홈페이지. 직접 조회 링크가 없는 전형의 "합격발표" 버튼이 여기로 연결된다.
+  var ADMISSION_URL = {
+    "가천대": "https://admission.gachon.ac.kr",
+    "가톨릭대": "https://ipsi.catholic.ac.kr",
+    "건국대": "https://enter.konkuk.ac.kr",
+    "건국대(글로컬)": "https://enter.kku.ac.kr",
+    "경기대": "https://enter.kyonggi.ac.kr",
+    "경희대": "https://iphak.khu.ac.kr",
+    "고려대": "https://oku.korea.ac.kr",
+    "고려대(세종)": "https://oku.korea.ac.kr",
+    "국민대": "https://admission.kookmin.ac.kr",
+    "단국대": "https://ipsi.dankook.ac.kr",
+    "대구한의대학교": "https://ipsi.dhu.ac.kr",
+    "덕성여대": "https://enter.duksung.ac.kr",
+    "동국대": "https://ipsi.dongguk.edu",
+    "동덕여대": "https://ipsi.dongduk.ac.kr",
+    "명지대": "https://iphak.mju.ac.kr",
+    "부산교육대학교": "https://www.bnue.ac.kr",
+    "삼육대": "https://ipsi.syu.ac.kr",
+    "상명대": "https://admission.smu.ac.kr",
+    "서강대": "https://admission.sogang.ac.kr",
+    "서울대": "https://admission.snu.ac.kr",
+    "서울시립대": "https://admission.uos.ac.kr",
+    "서울여대": "https://admission.swu.ac.kr",
+    "성균관대": "https://admission.skku.edu",
+    "성신여대": "https://ipsi.sungshin.ac.kr",
+    "세종대": "https://ipsi.sejong.ac.kr",
+    "숙명여대": "https://admission.sookmyung.ac.kr",
+    "숭실대": "https://iphak.ssu.ac.kr",
+    "아주대": "https://www.ajou.ac.kr",
+    "연세대": "https://admission.yonsei.ac.kr",
+    "연세대(미래캠퍼스)": "https://admission.yonsei.ac.kr/mirae",
+    "원광대학교": "https://ipsi.wku.ac.kr",
+    "육군사관학교": "http://www.kma.ac.kr",
+    "이화여대": "https://admission.ewha.ac.kr",
+    "인천대": "https://admission.inu.ac.kr",
+    "인하대": "https://admission.inha.ac.kr",
+    "장로회신학대학교": "https://www.pcts.ac.kr",
+    "전북대학교": "https://enter.jbnu.ac.kr",
+    "전주교육대학교": "https://www.jnue.ac.kr",
+    "중앙대": "https://admission.cau.ac.kr",
+    "진주교육대학교": "https://enter.cue.ac.kr",
+    "차의과학대학교": "https://admission.cha.ac.kr",
+    "총신대학교": "https://admission.csu.ac.kr",
+    "한국예술종합학교": "https://www.karts.ac.kr",
+    "한국외대": "https://www.hufs.ac.kr",
+    "한국외대(글로벌)": "https://www.hufs.ac.kr",
+    "한국항공대": "https://www.kau.ac.kr",
+    "한동대": "https://www.handong.edu",
+    "한양대": "https://go.hanyang.ac.kr",
+    "한양대(에리카)": "https://go.hanyang.ac.kr",
+    "홍익대": "https://ibsiweb.hongik.ac.kr"
+  };
   function resultLinkFor(d){
     for(var i=0;i<RESULT_LINKS.length;i++){
       var r = RESULT_LINKS[i];
@@ -408,15 +461,19 @@
     }
     return null;
   }
-  // kind: 'stage1'(1차 발표) 또는 'final'(최종 발표). 직접 조회 링크가 있으면 "결과 조회", 없으면 "발표 검색"(구글 검색)
+  // kind: 'stage1'(1차 발표) 또는 'final'(최종 발표). 직접 조회 링크가 있으면 "결과 조회", 없으면 "합격발표"(대학 입학처 홈페이지)
   function resultBtn(d, kind){
     if(kind !== 'stage1' && kind !== 'final') return '';
     var direct = kind === 'stage1' ? resultLinkFor(d) : null;
     if(direct){
       return '<a class="result-btn" target="_blank" rel="noopener" href="'+direct+'" title="대학 합격자 조회 페이지(수험번호 등 로그인 필요)">결과 조회</a>';
     }
-    var q = d.univ+' '+d.type+' 2027 수시 '+(kind === 'stage1' ? '1단계 ' : '최종 ')+'합격자 발표';
-    return '<a class="result-btn search" target="_blank" rel="noopener" href="https://www.google.com/search?q='+encodeURIComponent(q)+'" title="구글에서 발표 안내 검색">발표 검색</a>';
+    var home = ADMISSION_URL[d.univ];
+    if(!home){
+      var q = d.univ+' 입학처';
+      home = 'https://www.google.com/search?q='+encodeURIComponent(q);
+    }
+    return '<a class="result-btn search" target="_blank" rel="noopener" href="'+home+'" title="'+esc(d.univ)+' 입학처 홈페이지에서 합격 발표 확인">합격발표</a>';
   }
 
   function fmtDate(dateStr, dateEnd){
