@@ -153,7 +153,7 @@
   .cal-chips{display:flex; flex-direction:column; gap:3px; margin-top:2px;}
   .cal-chip{
     font-size:.78rem; line-height:1.3; padding:2px 6px; border-radius:5px; font-weight:700;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    white-space:normal; overflow-wrap:anywhere;
   }
   .cal-chip.stage1{background:var(--accent-soft); color:var(--tag-stage1);}
   .cal-chip.exam{background:#f6ecd9; color:var(--tag-exam);}
@@ -225,12 +225,10 @@
   .gcal-btn svg{width:12px; height:12px;}
   .result-btn{
     margin-left:auto; display:inline-flex; align-items:center; gap:5px; text-decoration:none;
-    font-size:.74rem; font-weight:700; color:#fff; background:var(--accent); border:1px solid var(--accent);
+    font-size:.74rem; font-weight:700; color:#fff; background:#0069e2; border:1px solid #0069e2;
     padding:5px 9px; border-radius:8px; white-space:nowrap;
   }
   .result-btn:hover{opacity:.88;}
-  .result-btn.search{color:var(--ink-soft); background:var(--surface); border:1px dashed var(--line); font-weight:600;}
-  .result-btn.search:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft); opacity:1;}
   .result-btn + .gcal-btn{margin-left:0;}
 
   .note-line{font-size:.76rem; color:var(--ink-faint); margin-top:8px; line-height:1.5;}
@@ -460,7 +458,7 @@
     }
     return null;
   }
-  // kind: 'stage1'(1차 발표) 또는 'final'(최종 발표). 직접 조회 링크가 있으면 "결과 조회", 없으면 "합격발표"(대학 입학처 홈페이지)
+  // kind: 'stage1'(1차 발표) 또는 'final'(최종 발표). 모든 전형에 "결과 조회" 버튼. 직접 조회 링크가 있으면 그 페이지로, 없으면 대학 입학처 홈페이지로 연결
   function resultBtn(d, kind){
     if(kind !== 'stage1' && kind !== 'final') return '';
     var direct = kind === 'stage1' ? resultLinkFor(d) : null;
@@ -472,7 +470,7 @@
       var q = d.univ+' 입학처';
       home = 'https://www.google.com/search?q='+encodeURIComponent(q);
     }
-    return '<a class="result-btn search" target="_blank" rel="noopener" href="'+home+'" title="'+esc(d.univ)+' 입학처 홈페이지에서 합격 발표 확인">합격발표</a>';
+    return '<a class="result-btn" target="_blank" rel="noopener" href="'+home+'" title="'+esc(d.univ)+' 입학처 홈페이지에서 합격 발표 확인">결과 조회</a>';
   }
 
   function fmtDate(dateStr, dateEnd){
@@ -600,7 +598,7 @@
       var dateStr = y+'-'+pad(m)+'-'+pad(day);
       var dayEvs = eventsOnDate(dateStr, evs);
       var chipHtml = '';
-      var maxChips = 5;
+      var maxChips = 999; // 한 칸의 일정을 모두 보여 준다
       dayEvs.slice(0, maxChips).forEach(function(e){
         var shortLabel = e.kind==='stage1' ? '1차 발표' : (e.kind==='exam' ? (e.cat==='논술' ? '논술' : '면접') : '최종 발표');
         chipHtml += '<div class="cal-chip '+e.kind+'" title="'+esc(e.uni+' '+e.type+' '+shortLabel)+'">'+esc(e.uni)+' '+shortLabel+'</div>';
