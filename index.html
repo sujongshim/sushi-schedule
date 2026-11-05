@@ -338,7 +338,7 @@
 
   // calAll: true면 달력이 검색어와 무관하게(전형유형 필터만 적용) 전체 대학을 보여줌("전체달력" 버튼),
   // false면 검색창에 입력된 대학의 모든 전형을 보여줌(전형유형 필터 무시, "대학별 달력" 버튼)
-  var state = { query:'', view:'list', typeFilter:'all', calAll:true, calYear:2026, calMonth:9 /*1-indexed*/, selectedDate:null };
+  var state = { query:'', view:'list', typeFilter:'all', calAll:true, calYear:new Date().getFullYear(), calMonth:new Date().getMonth()+1 /*1-indexed, 오늘이 속한 달*/, selectedDate:null };
 
   function norm(s){ return (s||'').toLowerCase(); }
 
@@ -783,7 +783,7 @@
   document.getElementById('prevMonth').addEventListener('click', function(){ shiftMonth(-1); });
   document.getElementById('nextMonth').addEventListener('click', function(){ shiftMonth(1); });
 
-  // init: jump calendar to earliest event month (Sept 2026)
+  // init: 달력은 오늘이 속한 달로 시작
   refresh();
 })();
 </script>
