@@ -441,7 +441,7 @@
     "원광대학교": "https://ipsi.wku.ac.kr",
     "육군사관학교": "http://www.kma.ac.kr",
     "이화여대": "https://admission.ewha.ac.kr",
-    "인천대": "https://admission.inu.ac.kr",
+    "인천대": "https://admission.inu.ac.kr/main.do",
     "인하대": "https://admission.inha.ac.kr",
     "장로회신학대학교": "https://www.puts.ac.kr/ipsi/db/db_admission_v1/",
     "전북대학교": "https://enter.jbnu.ac.kr",
@@ -783,7 +783,9 @@
   document.getElementById('prevMonth').addEventListener('click', function(){ shiftMonth(-1); });
   document.getElementById('nextMonth').addEventListener('click', function(){ shiftMonth(1); });
 
-  // init: 달력은 오늘이 속한 달로 시작
+  // init: 첫 화면은 전체달력 2026년 11월
+  state.calYear = 2026; state.calMonth = 11;
+  showCalendarView(true);
   refresh();
 })();
 </script>
