@@ -78,6 +78,8 @@
   .titlebar{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
   .titlebar h1{font-size:1.4rem; font-weight:600; letter-spacing:-.01em;}
   .titlebar .sub{color:var(--ink-soft); font-size:.82rem;}
+  .titlebar .fwd{font-family:"Noto Serif KR",Georgia,serif;font-weight:700;font-size:.92rem;letter-spacing:-.01em;padding:8px 16px;border:1px solid var(--line);border-radius:8px;color:var(--ink);text-decoration:none;background:transparent;white-space:nowrap}
+  .titlebar .fwd:hover{border-color:var(--accent);color:var(--accent)}
 
   .searchrow{margin-top:12px; position:relative;}
   .searchrow input{
@@ -249,7 +251,7 @@
   <div class="wrap">
     <div class="titlebar">
       <h1>수시 면접·발표 검색기</h1>
-      <span class="sub">2027학년도 수시모집 · 학생부종합 / 논술 / 학생부교과(한양대·외대)</span>
+      <a class="fwd" href="https://gghsinterview-pariro.vercel.app/" target="_blank" rel="noopener">면접 후기 검색기</a>
     </div>
     <div class="searchrow">
       <span class="icon">
