@@ -83,7 +83,8 @@
   .titlebar .sub{color:var(--ink-soft); font-size:.82rem;}
   .titlebar .fwd{font-family:"Noto Serif KR",Georgia,serif;font-weight:700;font-size:.92rem;letter-spacing:-.01em;padding:8px 16px;border:1px solid var(--line);border-radius:8px;color:var(--ink);text-decoration:none;background:transparent;white-space:nowrap}
   .titlebar .fwd{border:1.5px solid #7ec4a0}
-  .titlebar .fwd:hover{border-color:#4fa67b;color:#2d6b4a}
+  .titlebar .fwd{cursor:pointer;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
+  .titlebar .fwd:hover{border-color:#4fa67b;color:#2d6b4a;background:#e8f5ee;box-shadow:0 0 0 3px rgba(126,196,160,.35)}
 
   .searchrow{margin-top:12px; position:relative;}
   .searchrow input{
